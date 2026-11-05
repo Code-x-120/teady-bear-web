@@ -396,3 +396,10 @@ select:focus { border-color: var(--brand-2); }
 
 .steps { margin-top: 20px; }
 .steps li { font-size: 13.5px; }
+
+/* server add: hidden fix + mobile stack */
+.custom-wrap[hidden] { display: none !important; }
+@media (max-width: 480px) {
+  .custom-wrap { flex-direction: column; }
+  .custom-wrap .btn { width: 100%; }
+}

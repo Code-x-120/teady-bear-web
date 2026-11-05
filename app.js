@@ -90,26 +90,46 @@ function applyConfig(cfg) {
 }
 
 /* ── server select ── */
+function hostOf(u) {
+  try {
+    return new URL(u).host;
+  } catch {
+    return u;
+  }
+}
+
+function normalizeInput(raw) {
+  let u = String(raw || "").trim();
+  if (!u) return "";
+  if (!/^[a-z]+:\/\//i.test(u)) u = "https://" + u;
+  return normUrl(u);
+}
+
+function addOption(sel, label, value) {
+  const o = document.createElement("option");
+  o.textContent = label;
+  o.value = value;
+  sel.appendChild(o);
+  return o;
+}
+
 function buildServerOptions(cfg) {
   const sel = $("#server-select");
   const saved = localStorage.getItem(LS_API) || "";
   sel.innerHTML = "";
 
-  const add = (label, value) => {
-    const o = document.createElement("option");
-    o.textContent = label;
-    o.value = value;
-    sel.appendChild(o);
-  };
-
-  add("Default", "");
   const servers = (cfg.servers || []).filter((s) => s && s.url);
-  for (const s of servers) add(s.name || s.url, normUrl(s.url));
+  for (const s of servers) addOption(sel, s.name || hostOf(s.url), normUrl(s.url));
 
-  if (saved && ![...sel.options].some((o) => o.value === saved)) {
-    add("My server", saved);
+  if (saved) addOption(sel, "My server · " + hostOf(saved), saved);
+
+  if (!servers.length && !saved) {
+    // koi server configured nahi — user ko seedha add karne do
+    addOption(sel, "No server yet — add one", "");
+    $("#custom-wrap").hidden = false;
   }
-  sel.value = saved;
+
+  sel.value = saved || (servers[0] ? normUrl(servers[0].url) : "");
 }
 
 function setApi(url, { quiet } = {}) {
@@ -224,22 +244,26 @@ async function pair(phone) {
   buildServerOptions(cfg);
 
   const qApi = new URLSearchParams(location.search).get("api");
-  const start = normUrl(qApi || localStorage.getItem(LS_API) || "");
-  if (qApi) localStorage.setItem(LS_API, start);
+  const first = (cfg.servers || []).find((s) => s && s.url);
+  const start = normalizeInput(qApi || localStorage.getItem(LS_API) || (first ? first.url : ""));
+
   if (start) {
     $("#custom-server").value = start;
+    $("#server-select").value = start;
     setApi(start, { quiet: true });
   } else {
     paint(null);
     refreshStatus();
+    setMsg("Add your server URL below to start.", "");
   }
 
   $("#server-select").addEventListener("change", (e) => {
     if (!e.target.value) {
-      setMsg("No default server yet — add your own URL.", "");
       state.api = "";
       localStorage.removeItem(LS_API);
       paint(null);
+      $("#custom-wrap").hidden = false;
+      setMsg("Enter your bot URL below.", "");
       return;
     }
     setApi(e.target.value);
@@ -248,25 +272,41 @@ async function pair(phone) {
   $("#toggle-custom").addEventListener("click", () => {
     const w = $("#custom-wrap");
     w.hidden = !w.hidden;
+    if (!w.hidden) $("#custom-server").focus();
   });
 
-  $("#save-custom").addEventListener("click", () => {
-    const u = normUrl($("#custom-server").value);
-    if (!/^https?:\/\/.+\..+/i.test(u)) {
-      toast("Enter a full URL (https://…)");
+  async function saveCustom() {
+    const u = normalizeInput($("#custom-server").value);
+    if (!/^https?:\/\/[^\s/]+\.[^\s/]+/i.test(u)) {
+      toast("Enter a valid URL, e.g. my-bot.up.railway.app");
       return;
     }
     if (!isHttps(u)) toast("⚠️ Use HTTPS or the browser will block it");
+
     const sel = $("#server-select");
-    if (![...sel.options].some((o) => o.value === u)) {
-      const o = document.createElement("option");
-      o.textContent = "My server";
-      o.value = u;
-      sel.appendChild(o);
-    }
+    const exists = [...sel.options].find((o) => o.value === u);
+    if (!exists) addOption(sel, "My server · " + hostOf(u), u);
     sel.value = u;
     $("#custom-wrap").hidden = true;
     setApi(u);
+    setMsg("Checking server…");
+
+    try {
+      const s = await getStatus(u);
+      setMsg(`✅ Server online · ${s.commands ?? 0} commands`, "ok");
+      paint(s);
+    } catch {
+      setMsg("⚠️ Saved, but server is offline — check the URL (HTTPS) and that the bot is running.", "err");
+      paint(null);
+    }
+  }
+
+  $("#save-custom").addEventListener("click", saveCustom);
+  $("#custom-server").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      saveCustom();
+    }
   });
 
   $("#pair-form").addEventListener("submit", (e) => {
