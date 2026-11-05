@@ -1,11 +1,11 @@
-// 🧸 Teady Bear-MD — frontend (simple flow: number → code → connect)
+// 🧸 Teady Bear-MD — frontend (number → code → connect)
 const $ = (s) => document.querySelector(s);
 const LS_API = "teady.api";
 const LS_THEME = "teady.theme";
 
 const state = { api: "", code: "", pairing: false, timer: null };
 
-/* ── small helpers ── */
+/* ── helpers ── */
 function toast(msg) {
   const t = $("#toast");
   t.textContent = msg;
@@ -67,7 +67,7 @@ function initTheme() {
   });
 }
 
-/* ── config (local + cloud gist) ── */
+/* ── config (local file + optional cloud gist) ── */
 async function loadConfig() {
   let cfg = {};
   try {
@@ -84,19 +84,9 @@ async function loadConfig() {
 }
 
 function applyConfig(cfg) {
-  if (cfg.prefix) $("#menu-cmd").textContent = cfg.prefix + "menu";
   if (cfg.telegram) $("#tg-link").href = cfg.telegram;
   if (cfg.channel) $("#ch-link").href = cfg.channel;
   $("#year").textContent = new Date().getFullYear();
-
-  const box = $("#command-chips");
-  box.innerHTML = "";
-  for (const c of cfg.commands || []) {
-    const s = document.createElement("span");
-    s.className = "chip";
-    s.textContent = c;
-    box.appendChild(s);
-  }
 }
 
 /* ── server select ── */
@@ -152,7 +142,7 @@ function paint(s) {
   const badge = $("#badge-text");
   if (!s) {
     dot.className = "dot bad";
-    badge.textContent = state.api ? "Server offline" : "Server select karo";
+    badge.textContent = state.api ? "Server offline" : "Select a server";
     return;
   }
   dot.className = "dot " + (s.linked ? "ok" : "");
@@ -180,12 +170,12 @@ async function refreshStatus() {
 async function pair(phone) {
   if (state.pairing) return;
   if (!state.api) {
-    setMsg("Pehle server select karo (ya apna URL add karo).", "err");
+    setMsg("Select a server first (or add your own URL).", "err");
     return;
   }
   const num = String(phone || "").replace(/[^0-9]/g, "");
   if (num.length < 8 || num.length > 15) {
-    setMsg("Number galat hai — country code ke saath likho.", "err");
+    setMsg("Invalid number — include the country code.", "err");
     return;
   }
 
@@ -193,7 +183,7 @@ async function pair(phone) {
   const btn = $("#pair-btn");
   btn.disabled = true;
   btn.textContent = "Wait…";
-  setMsg("Code ban raha hai (10–20s)…");
+  setMsg("Generating code (10–20s)…");
   $("#code-box").hidden = true;
 
   try {
@@ -204,20 +194,20 @@ async function pair(phone) {
     } catch {}
 
     if (!r.ok || d.error) {
-      setMsg("❌ " + (d.error || "Fail (HTTP " + r.status + ")"), "err");
+      setMsg("❌ " + (d.error || "Failed (HTTP " + r.status + ")"), "err");
     } else if (d.code) {
       state.code = d.code;
       $("#code").textContent = d.code;
       $("#code-box").hidden = false;
-      setMsg("✅ Code ready — WhatsApp me enter karo.", "ok");
+      setMsg("✅ Code ready — enter it in WhatsApp.", "ok");
       const copied = await copyText(d.code);
-      toast(copied ? "Code copy ✓" : "Code tap karke copy karo");
+      toast(copied ? "Code copied ✓" : "Tap the code to copy");
       refreshStatus();
     } else {
-      setMsg("❌ Code nahi mila — dobara try karo.", "err");
+      setMsg("❌ No code received — please try again.", "err");
     }
   } catch {
-    setMsg("❌ Server se connect nahi hua — URL check karo.", "err");
+    setMsg("❌ Couldn't reach the server — check the URL.", "err");
   } finally {
     state.pairing = false;
     btn.disabled = false;
@@ -246,7 +236,7 @@ async function pair(phone) {
 
   $("#server-select").addEventListener("change", (e) => {
     if (!e.target.value) {
-      setMsg("Default server abhi set nahi — apna URL add karo.", "");
+      setMsg("No default server yet — add your own URL.", "");
       state.api = "";
       localStorage.removeItem(LS_API);
       paint(null);
@@ -263,10 +253,10 @@ async function pair(phone) {
   $("#save-custom").addEventListener("click", () => {
     const u = normUrl($("#custom-server").value);
     if (!/^https?:\/\/.+\..+/i.test(u)) {
-      toast("Poora URL daalo (https://…)");
+      toast("Enter a full URL (https://…)");
       return;
     }
-    if (!isHttps(u)) toast("⚠️ HTTPS use karo warna block hoga");
+    if (!isHttps(u)) toast("⚠️ Use HTTPS or the browser will block it");
     const sel = $("#server-select");
     if (![...sel.options].some((o) => o.value === u)) {
       const o = document.createElement("option");
@@ -286,7 +276,7 @@ async function pair(phone) {
 
   $("#copy-btn").addEventListener("click", async () => {
     const ok = await copyText(state.code);
-    toast(ok ? "Copied ✓" : "Copy fail — code tap karo");
+    toast(ok ? "Copied ✓" : "Copy failed — tap the code");
   });
   $("#code").addEventListener("click", async () => {
     if (await copyText(state.code)) toast("Copied ✓");

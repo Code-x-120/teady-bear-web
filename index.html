@@ -23,23 +23,22 @@
 </nav>
 
 <main class="wrap main">
-  <!-- hero + connect (ek hi card) -->
   <section class="hero" id="top">
     <span class="badge"><span class="dot" id="hero-dot"></span> <span id="badge-text">Checking server…</span></span>
-    <h1>Pair karo, <span class="grad">seconds me.</span></h1>
-    <p class="lead">Number daalo, code lo, WhatsApp me link karo. Bas.</p>
+    <h1>Connect in <span class="grad">seconds.</span></h1>
+    <p class="lead">Enter your number, get a code, link WhatsApp. That's it.</p>
 
     <form class="connect-card" id="pair-form" autocomplete="off">
       <div class="field">
         <label for="phone">WhatsApp number</label>
         <input id="phone" type="tel" inputmode="numeric" placeholder="923XXXXXXXXX" maxlength="15" required />
-        <p class="tiny">Country code ke saath — bina + ya space.</p>
+        <p class="tiny">Include country code — no + or spaces.</p>
       </div>
 
       <div class="field">
         <label for="server-select">Server</label>
         <select id="server-select"></select>
-        <button type="button" class="link-btn" id="toggle-custom">Apna server add karo</button>
+        <button type="button" class="link-btn" id="toggle-custom">Add your own server</button>
         <div class="custom-wrap" id="custom-wrap" hidden>
           <input id="custom-server" type="url" placeholder="https://my-bot.up.railway.app" />
           <button type="button" class="btn small ghost" id="save-custom">Save</button>
@@ -58,12 +57,12 @@
     <ol class="steps">
       <li>WhatsApp → <b>Linked devices</b></li>
       <li>Link a device → <b>Link with phone number</b></li>
-      <li>Code enter karo</li>
+      <li>Enter the code</li>
     </ol>
   </section>
 
   <section class="section" id="features">
-    <h2>Kya milta hai</h2>
+    <h2>What you get</h2>
     <div class="grid features">
       <article class="card">
         <div class="ico">⬇️</div>
@@ -81,12 +80,6 @@
         <p>Anti-link, anti-badword, anti-delete, mute.</p>
       </article>
     </div>
-  </section>
-
-  <section class="section" id="commands">
-    <h2>Commands</h2>
-    <div class="chips" id="command-chips"></div>
-    <p class="hint">Poora list: chat me <code id="menu-cmd">.menu</code></p>
   </section>
 
   <footer class="footer">
