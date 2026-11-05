@@ -1,0 +1,12 @@
+{
+  "brand": "Teady Bear-MD",
+  "prefix": ".",
+  "telegram": "https://t.me/Code_x_120",
+  "channel": "https://t.me/codexisgreat",
+  "configGist": "https://gist.githubusercontent.com/Code-x-120/2c8ffcea54d769aec377c8fbde0a7e11/raw/config.json",
+  "servers": [],
+  "commands": [
+    ".play", ".song", ".tt", ".ig", ".ai", ".img",
+    ".sticker", ".antilink", ".remind", ".logo", ".weather", ".news"
+  ]
+}

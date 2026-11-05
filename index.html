@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Teady Bear-MD — WhatsApp Bot</title>
+<meta name="description" content="Teady Bear-MD — free WhatsApp bot. Pair your number in seconds." />
+<meta name="theme-color" content="#0b0f14" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧸</text></svg>" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="bg-glow" aria-hidden="true"></div>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a class="brand" href="#top">
+      <span class="brand-logo">🧸</span>
+      <span class="brand-text">Teady Bear<span class="brand-dim">-MD</span></span>
+    </a>
+    <button id="theme-toggle" class="icon-btn" aria-label="Toggle theme">🌙</button>
+  </div>
+</nav>
+
+<main class="wrap main">
+  <!-- hero + connect (ek hi card) -->
+  <section class="hero" id="top">
+    <span class="badge"><span class="dot" id="hero-dot"></span> <span id="badge-text">Checking server…</span></span>
+    <h1>Pair karo, <span class="grad">seconds me.</span></h1>
+    <p class="lead">Number daalo, code lo, WhatsApp me link karo. Bas.</p>
+
+    <form class="connect-card" id="pair-form" autocomplete="off">
+      <div class="field">
+        <label for="phone">WhatsApp number</label>
+        <input id="phone" type="tel" inputmode="numeric" placeholder="923XXXXXXXXX" maxlength="15" required />
+        <p class="tiny">Country code ke saath — bina + ya space.</p>
+      </div>
+
+      <div class="field">
+        <label for="server-select">Server</label>
+        <select id="server-select"></select>
+        <button type="button" class="link-btn" id="toggle-custom">Apna server add karo</button>
+        <div class="custom-wrap" id="custom-wrap" hidden>
+          <input id="custom-server" type="url" placeholder="https://my-bot.up.railway.app" />
+          <button type="button" class="btn small ghost" id="save-custom">Save</button>
+        </div>
+      </div>
+
+      <button class="btn primary wide" type="submit" id="pair-btn">Get code</button>
+      <p class="msg" id="pair-msg" role="status"></p>
+
+      <div class="code-box" id="code-box" hidden>
+        <span class="code" id="code">--------</span>
+        <button class="btn small ghost" type="button" id="copy-btn">📋 Copy</button>
+      </div>
+    </form>
+
+    <ol class="steps">
+      <li>WhatsApp → <b>Linked devices</b></li>
+      <li>Link a device → <b>Link with phone number</b></li>
+      <li>Code enter karo</li>
+    </ol>
+  </section>
+
+  <section class="section" id="features">
+    <h2>Kya milta hai</h2>
+    <div class="grid features">
+      <article class="card">
+        <div class="ico">⬇️</div>
+        <h3>Downloader</h3>
+        <p>YouTube, TikTok, Instagram, Facebook, X, Terabox.</p>
+      </article>
+      <article class="card">
+        <div class="ico">🤖</div>
+        <h3>AI + Sticker</h3>
+        <p>Chat, image, voice reply, sticker studio.</p>
+      </article>
+      <article class="card">
+        <div class="ico">🛡️</div>
+        <h3>Group security</h3>
+        <p>Anti-link, anti-badword, anti-delete, mute.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section" id="commands">
+    <h2>Commands</h2>
+    <div class="chips" id="command-chips"></div>
+    <p class="hint">Poora list: chat me <code id="menu-cmd">.menu</code></p>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <span>🧸 <b>Teady Bear-MD</b></span>
+      <span class="footer-links">
+        <a id="tg-link" href="#" target="_blank" rel="noopener">Telegram</a>
+        <a id="ch-link" href="#" target="_blank" rel="noopener">Channel</a>
+      </span>
+    </div>
+    <p class="copyright">© <span id="year"></span> Teady Bear-MD</p>
+  </footer>
+</main>
+
+<div class="toast" id="toast" role="status"></div>
+<script src="app.js" defer></script>
+</body>
+</html>
