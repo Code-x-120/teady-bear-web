@@ -455,3 +455,8 @@ select:focus { border-color: var(--brand-2); }
   border: 1px solid var(--border);
   white-space: nowrap;
 }
+
+.link-btn + .link-btn { margin-left: 14px; }
+@media (max-width: 380px) {
+  .link-btn + .link-btn { margin-left: 0; display: block; margin-top: 8px; }
+}

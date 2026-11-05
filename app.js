@@ -138,16 +138,37 @@ function setApi(url, { quiet } = {}) {
   u ? localStorage.setItem(LS_API, u) : localStorage.removeItem(LS_API);
 
   if (!quiet) {
-    setMsg(u ? "Server ready ✓" : "", u ? "ok" : "");
+    setMsg(u ? "Checking server…" : "", "");
     if (u) toast("Server set ✓");
   }
   refreshStatus();
+  if (u && !quiet) probeAndReport(u);
+}
+
+/* error text — browser ka asli reason dikhao */
+function reasonOf(e) {
+  if (e?.name === "AbortError") return "timeout — server respond nahi kar raha";
+  if (e instanceof TypeError) return "network/CORS — link dead ya bot off hai";
+  return e?.message || "unknown error";
+}
+
+async function probeAndReport(u) {
+  try {
+    const s = await getStatus(u, 12000);
+    setMsg(`✅ Server online · ${s.commands ?? 0} commands`, "ok");
+    paint(s);
+    return true;
+  } catch (e) {
+    setMsg(`⚠️ ${reasonOf(e)}. Link purana ho sakta hai — naya daalo.`, "err");
+    paint(null);
+    return false;
+  }
 }
 
 /* ── status ── */
-async function getStatus(url) {
+async function getStatus(url, timeout = 12000) {
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 7000);
+  const t = setTimeout(() => ctrl.abort(), timeout);
   try {
     const r = await fetch(url + "/status", { signal: ctrl.signal, cache: "no-store" });
     if (!r.ok) throw new Error("HTTP " + r.status);
@@ -207,7 +228,33 @@ async function pair(phone) {
   $("#code-box").hidden = true;
 
   try {
-    const r = await fetch(state.api + "/pair?phone=" + encodeURIComponent(num), { cache: "no-store" });
+    let r = null;
+    let lastErr = null;
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 45000);
+        try {
+          r = await fetch(state.api + "/pair?phone=" + encodeURIComponent(num), {
+            signal: ctrl.signal,
+            cache: "no-store",
+          });
+        } finally {
+          clearTimeout(t);
+        }
+        break;
+      } catch (e) {
+        lastErr = e;
+        if (attempt === 0) {
+          setMsg("Connection slow — retrying…");
+          await new Promise((res) => setTimeout(res, 1500));
+        }
+      }
+    }
+
+    if (!r) throw lastErr || new Error("network");
+
     let d = {};
     try {
       d = await r.json();
@@ -226,8 +273,8 @@ async function pair(phone) {
     } else {
       setMsg("❌ No code received — please try again.", "err");
     }
-  } catch {
-    setMsg("❌ Couldn't reach the server — check the URL.", "err");
+  } catch (e) {
+    setMsg(`❌ ${reasonOf(e)}. Check the server URL.`, "err");
   } finally {
     state.pairing = false;
     btn.disabled = false;
@@ -289,17 +336,17 @@ async function pair(phone) {
     sel.value = u;
     $("#custom-wrap").hidden = true;
     setApi(u);
-    setMsg("Checking server…");
-
-    try {
-      const s = await getStatus(u);
-      setMsg(`✅ Server online · ${s.commands ?? 0} commands`, "ok");
-      paint(s);
-    } catch {
-      setMsg("⚠️ Saved, but server is offline — check the URL (HTTPS) and that the bot is running.", "err");
-      paint(null);
-    }
   }
+
+  $("#test-server").addEventListener("click", async () => {
+    if (!state.api) {
+      setMsg("Pehle server URL daalo (Add your own server).", "err");
+      return;
+    }
+    setMsg("Testing…");
+    const ok = await probeAndReport(state.api);
+    toast(ok ? "Server online ✓" : "Server not reachable");
+  });
 
   $("#save-custom").addEventListener("click", saveCustom);
   $("#custom-server").addEventListener("keydown", (e) => {
