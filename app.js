@@ -177,6 +177,24 @@ function updateAdminUi() {
   $("#toggle-custom").hidden = !admin;
   $("#copy-gist").hidden = !admin;
   if (!admin) $("#custom-wrap").hidden = true;
+
+  // owner key UI
+  $("#owner-toggle").hidden = admin;
+  $("#owner-state").hidden = !admin;
+  $("#owner-exit").hidden = !admin;
+  if (admin) {
+    $("#owner-wrap").hidden = true;
+    $("#owner-key").value = "";
+  }
+}
+
+function setAdmin(on) {
+  const key = adminKey();
+  if (!key) return false;
+  if (on) localStorage.setItem(LS_ADMIN, key);
+  else localStorage.removeItem(LS_ADMIN);
+  buildServerOptions(state.cfg || {});
+  return true;
 }
 
 function setApi(url, { quiet } = {}) {
@@ -380,6 +398,42 @@ async function pair(phone) {
     const w = $("#custom-wrap");
     w.hidden = !w.hidden;
     if (!w.hidden) $("#custom-server").focus();
+  });
+
+  /* ── owner key (unlock / sign out) ── */
+  $("#owner-toggle").addEventListener("click", () => {
+    const w = $("#owner-wrap");
+    w.hidden = !w.hidden;
+    if (!w.hidden) $("#owner-key").focus();
+  });
+
+  function tryUnlock() {
+    const typed = String($("#owner-key").value || "").trim();
+    const key = adminKey();
+    if (!key) {
+      toast("Owner key not configured");
+      return;
+    }
+    if (typed && typed === key) {
+      setAdmin(true);
+      $("#owner-wrap").hidden = true;
+      toast("Owner mode on ✓");
+      return;
+    }
+    toast("Wrong owner key");
+  }
+
+  $("#owner-unlock").addEventListener("click", tryUnlock);
+  $("#owner-key").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      tryUnlock();
+    }
+  });
+
+  $("#owner-exit").addEventListener("click", () => {
+    setAdmin(false);
+    toast("Owner mode off");
   });
 
   async function saveCustom() {
