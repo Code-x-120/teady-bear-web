@@ -399,6 +399,7 @@ select:focus { border-color: var(--brand-2); }
 
 /* server add: hidden fix + mobile stack */
 .custom-wrap[hidden] { display: none !important; }
+.link-btn[hidden] { display: none !important; }
 @media (max-width: 480px) {
   .custom-wrap { flex-direction: column; }
   .custom-wrap .btn { width: 100%; }
@@ -488,6 +489,7 @@ select:focus { border-color: var(--brand-2); }
   max-width: 100%;
 }
 .custom-wrap[hidden] { display: none !important; }
+.link-btn[hidden] { display: none !important; }
 
 .custom-wrap .inp-sm {
   height: 36px;
