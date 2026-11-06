@@ -115,15 +115,30 @@ function addOption(sel, label, value) {
 
 /* ── owner mode + servers ── */
 const LS_SERVERS = "teady.servers";
-const LS_ADMIN = "teady.admin";
+const LS_ADMIN = "teady.owner";
 
-function adminKey() {
-  return String(state.cfg?.adminKey || "").trim();
+function adminHash() {
+  return String(state.cfg?.adminKeyHash || "").trim().toLowerCase();
+}
+
+async function sha256(text) {
+  const data = new TextEncoder().encode(String(text));
+  if (globalThis.crypto?.subtle) {
+    const buf = await globalThis.crypto.subtle.digest("SHA-256", data);
+    return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+  return "";
+}
+
+async function isOwnerKey(typed) {
+  const hash = adminHash();
+  const clean = String(typed || "").trim();
+  if (!hash || !clean) return false;
+  return (await sha256(clean)) === hash;
 }
 
 function isAdmin() {
-  const key = adminKey();
-  return !!key && localStorage.getItem(LS_ADMIN) === key;
+  return !!adminHash() && localStorage.getItem(LS_ADMIN) === "1";
 }
 
 function ownerServers() {
@@ -189,9 +204,7 @@ function updateAdminUi() {
 }
 
 function setAdmin(on) {
-  const key = adminKey();
-  if (!key) return false;
-  if (on) localStorage.setItem(LS_ADMIN, key);
+  if (on) localStorage.setItem(LS_ADMIN, "1");
   else localStorage.removeItem(LS_ADMIN);
   buildServerOptions(state.cfg || {});
   return true;
@@ -358,11 +371,12 @@ async function pair(phone) {
   // owner mode: ?admin=KEY (ek dafa) — sirf owner server add kar sakta hai
   const adminParam = new URLSearchParams(location.search).get("admin");
   if (adminParam) {
-    if (adminKey() && adminParam === adminKey()) {
-      localStorage.setItem(LS_ADMIN, adminKey());
+    if (await isOwnerKey(adminParam)) {
+      setAdmin(true);
       setTimeout(() => toast("Owner mode on ✓"), 300);
     } else {
-      toast("Wrong owner key");
+      setAdmin(false);
+      setTimeout(() => toast("Wrong owner key"), 300);
     }
   }
 
@@ -407,16 +421,15 @@ async function pair(phone) {
     if (!w.hidden) $("#owner-key").focus();
   });
 
-  function tryUnlock() {
-    const typed = String($("#owner-key").value || "").trim();
-    const key = adminKey();
-    if (!key) {
+  async function tryUnlock() {
+    if (!adminHash()) {
       toast("Owner key not configured");
       return;
     }
-    if (typed && typed === key) {
+    if (await isOwnerKey($("#owner-key").value)) {
       setAdmin(true);
       $("#owner-wrap").hidden = true;
+      $("#owner-key").value = "";
       toast("Owner mode on ✓");
       return;
     }
