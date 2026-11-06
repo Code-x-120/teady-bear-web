@@ -189,17 +189,12 @@ function buildServerOptions(cfg) {
 
 function updateAdminUi() {
   const admin = isAdmin();
-  $("#toggle-custom").hidden = !admin;
   $("#copy-gist").hidden = !admin;
-  if (!admin) $("#custom-wrap").hidden = true;
-
-  // owner key UI
-  $("#owner-toggle").hidden = admin;
-  $("#owner-state").hidden = !admin;
-  $("#owner-exit").hidden = !admin;
-  if (admin) {
-    $("#owner-wrap").hidden = true;
-    $("#owner-key").value = "";
+  // owner-mode me key box ki zaroorat nahi
+  const keyBox = $("#owner-key");
+  if (keyBox) {
+    keyBox.hidden = admin;
+    if (admin) keyBox.value = "";
   }
 }
 
@@ -401,58 +396,30 @@ async function pair(phone) {
       state.api = "";
       localStorage.removeItem(LS_API);
       paint(null);
-      $("#custom-wrap").hidden = false;
       setMsg("Enter your bot URL below.", "");
       return;
     }
     setApi(e.target.value);
   });
 
-  $("#toggle-custom").addEventListener("click", () => {
-    const w = $("#custom-wrap");
-    w.hidden = !w.hidden;
-    if (!w.hidden) $("#custom-server").focus();
-  });
-
-  /* ── owner key (unlock / sign out) ── */
-  $("#owner-toggle").addEventListener("click", () => {
-    const w = $("#owner-wrap");
-    w.hidden = !w.hidden;
-    if (!w.hidden) $("#owner-key").focus();
-  });
-
-  async function tryUnlock() {
-    if (!adminHash()) {
-      toast("Owner key not configured");
-      return;
-    }
-    if (await isOwnerKey($("#owner-key").value)) {
-      setAdmin(true);
-      $("#owner-wrap").hidden = true;
-      $("#owner-key").value = "";
-      toast("Owner mode on ✓");
-      return;
-    }
-    toast("Wrong owner key");
-  }
-
-  $("#owner-unlock").addEventListener("click", tryUnlock);
-  $("#owner-key").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      tryUnlock();
-    }
-  });
-
-  $("#owner-exit").addEventListener("click", () => {
-    setAdmin(false);
-    toast("Owner mode off");
-  });
-
   async function saveCustom() {
+    // pehli dafa owner key chahiye — save usi ke saath hota hai
     if (!isAdmin()) {
-      toast("Owner key required");
-      return;
+      if (!adminHash()) {
+        toast("Owner key not configured");
+        return;
+      }
+      const typed = String($("#owner-key").value || "").trim();
+      if (!typed) {
+        toast("Owner key required");
+        return;
+      }
+      if (!(await isOwnerKey(typed))) {
+        toast("Wrong owner key");
+        return;
+      }
+      setAdmin(true);
+      toast("Owner mode on ✓");
     }
     const u = normalizeInput($("#custom-server").value);
     const name = String($("#custom-name").value || "").trim().slice(0, 24);
@@ -474,7 +441,6 @@ async function pair(phone) {
 
     buildServerOptions(state.cfg);
     $("#server-select").value = u;
-    $("#custom-wrap").hidden = true;
     $("#custom-name").value = "";
     $("#custom-server").value = "";
     toast("Server saved ✓");

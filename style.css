@@ -542,3 +542,19 @@ select:focus { border-color: var(--brand-2); }
   .custom-wrap #custom-server { flex: 1 1 140px; max-width: none; }
   .custom-wrap .btn.small { flex: 0 0 auto; width: auto; }
 }
+
+/* ── owner key inline (server name + url ke sath) ── */
+#owner-key[hidden] { display: none !important; }
+
+.custom-wrap #owner-key {
+  flex: 0 1 110px;
+  max-width: 130px;
+}
+
+@media (max-width: 430px) {
+  .custom-wrap { gap: 6px; }
+  .custom-wrap #custom-name { flex: 0 0 96px; max-width: 96px; }
+  .custom-wrap #custom-server { flex: 1 1 120px; }
+  .custom-wrap #owner-key { flex: 0 1 96px; max-width: 110px; }
+  .custom-wrap .btn.small { height: 36px; padding: 0 10px; }
+}
