@@ -113,23 +113,70 @@ function addOption(sel, label, value) {
   return o;
 }
 
+/* ── owner mode + servers ── */
+const LS_SERVERS = "teady.servers";
+const LS_ADMIN = "teady.admin";
+
+function adminKey() {
+  return String(state.cfg?.adminKey || "").trim();
+}
+
+function isAdmin() {
+  const key = adminKey();
+  return !!key && localStorage.getItem(LS_ADMIN) === key;
+}
+
+function ownerServers() {
+  try {
+    const list = JSON.parse(localStorage.getItem(LS_SERVERS) || "[]");
+    return Array.isArray(list) ? list.filter((s) => s && s.url) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveOwnerServers(list) {
+  localStorage.setItem(LS_SERVERS, JSON.stringify(list));
+}
+
 function buildServerOptions(cfg) {
   const sel = $("#server-select");
   const saved = localStorage.getItem(LS_API) || "";
   sel.innerHTML = "";
 
-  const servers = (cfg.servers || []).filter((s) => s && s.url);
-  for (const s of servers) addOption(sel, s.name || hostOf(s.url), normUrl(s.url));
+  const list = [];
+  const push = (name, url) => {
+    const u = normUrl(url);
+    if (!u || list.some((s) => s.url === u)) return;
+    list.push({ name: String(name || "").trim(), url: u });
+  };
 
-  if (saved) addOption(sel, "My server · " + hostOf(saved), saved);
+  for (const s of cfg.servers || []) if (s && s.url) push(s.name, s.url);
+  if (isAdmin()) for (const s of ownerServers()) push(s.name, s.url);
+  else for (const s of ownerServers()) if (s.public) push(s.name, s.url);
 
-  if (!servers.length && !saved) {
-    // koi server configured nahi — user ko seedha add karne do
-    addOption(sel, "No server yet — add one", "");
-    $("#custom-wrap").hidden = false;
+  // naam na ho to Server 1, Server 2...
+  list.forEach((s, i) => {
+    if (!s.name) s.name = `Server ${i + 1}`;
+  });
+
+  for (const s of list) addOption(sel, s.name, s.url);
+
+  if (saved && !list.some((s) => s.url === saved)) {
+    addOption(sel, "Saved · " + hostOf(saved), saved);
   }
 
-  sel.value = saved || (servers[0] ? normUrl(servers[0].url) : "");
+  if (!list.length && !saved) addOption(sel, "No server configured", "");
+
+  sel.value = saved || (list[0] ? list[0].url : "");
+  updateAdminUi();
+}
+
+function updateAdminUi() {
+  const admin = isAdmin();
+  $("#toggle-custom").hidden = !admin;
+  $("#copy-gist").hidden = !admin;
+  if (!admin) $("#custom-wrap").hidden = true;
 }
 
 function setApi(url, { quiet } = {}) {
@@ -287,7 +334,20 @@ async function pair(phone) {
   initTheme();
 
   const cfg = await loadConfig();
+  state.cfg = cfg;
   applyConfig(cfg);
+
+  // owner mode: ?admin=KEY (ek dafa) — sirf owner server add kar sakta hai
+  const adminParam = new URLSearchParams(location.search).get("admin");
+  if (adminParam) {
+    if (adminKey() && adminParam === adminKey()) {
+      localStorage.setItem(LS_ADMIN, adminKey());
+      setTimeout(() => toast("Owner mode on ✓"), 300);
+    } else {
+      toast("Wrong owner key");
+    }
+  }
+
   buildServerOptions(cfg);
 
   const qApi = new URLSearchParams(location.search).get("api");
@@ -323,24 +383,46 @@ async function pair(phone) {
   });
 
   async function saveCustom() {
+    if (!isAdmin()) {
+      toast("Owner key required");
+      return;
+    }
     const u = normalizeInput($("#custom-server").value);
+    const name = String($("#custom-name").value || "").trim().slice(0, 24);
+
     if (!/^https?:\/\/[^\s/]+\.[^\s/]+/i.test(u)) {
       toast("Enter a valid URL, e.g. my-bot.up.railway.app");
       return;
     }
     if (!isHttps(u)) toast("⚠️ Use HTTPS or the browser will block it");
 
-    const sel = $("#server-select");
-    const exists = [...sel.options].find((o) => o.value === u);
-    if (!exists) addOption(sel, "My server · " + hostOf(u), u);
-    sel.value = u;
+    const list = ownerServers();
+    const existing = list.find((s) => normUrl(s.url) === u);
+    if (existing) {
+      if (name) existing.name = name;
+    } else {
+      list.push({ name: name || `Server ${list.length + 1}`, url: u });
+    }
+    saveOwnerServers(list);
+
+    buildServerOptions(state.cfg);
+    $("#server-select").value = u;
     $("#custom-wrap").hidden = true;
+    $("#custom-name").value = "";
+    $("#custom-server").value = "";
+    toast("Server saved ✓");
     setApi(u);
   }
 
-  $("#test-server").addEventListener("click", async () => {
-    if (!state.api) {
-      setMsg("Pehle server URL daalo (Add your own server).", "err");
+  $("#copy-gist").addEventListener("click", async () => {
+    if (!isAdmin()) return;
+    const json = JSON.stringify({ servers: ownerServers() }, null, 2);
+    const ok = await copyText(json);
+    toast(ok ? "JSON copied — gist me paste karo" : "Copy failed");
+  });
+
+  $("#test-server").addEventListener("click", async () => {    if (!state.api) {
+      setMsg("No server configured yet.", "err");
       return;
     }
     setMsg("Testing…");

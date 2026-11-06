@@ -38,11 +38,13 @@
       <div class="field">
         <label for="server-select">Server</label>
         <select id="server-select"></select>
-        <button type="button" class="link-btn" id="toggle-custom">Add your own server</button>
         <button type="button" class="link-btn" id="test-server">Test connection</button>
+        <button type="button" class="link-btn" id="toggle-custom" hidden>Add server</button>
         <div class="custom-wrap" id="custom-wrap" hidden>
+          <input id="custom-name" type="text" maxlength="24" placeholder="Server name" />
           <input id="custom-server" type="url" placeholder="https://my-bot.up.railway.app" />
           <button type="button" class="btn small ghost" id="save-custom">Save</button>
+          <button type="button" class="btn small ghost" id="copy-gist" hidden>Copy gist JSON</button>
         </div>
       </div>
 

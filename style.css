@@ -460,3 +460,11 @@ select:focus { border-color: var(--brand-2); }
 @media (max-width: 380px) {
   .link-btn + .link-btn { margin-left: 0; display: block; margin-top: 8px; }
 }
+
+/* owner server form: name + url + save */
+.custom-wrap { flex-wrap: wrap; }
+.custom-wrap #custom-name { flex: 0 0 130px; }
+.custom-wrap #custom-server { flex: 1 1 200px; }
+@media (max-width: 480px) {
+  .custom-wrap #custom-name { flex: 1 1 100%; }
+}
