@@ -154,10 +154,27 @@ function saveOwnerServers(list) {
   localStorage.setItem(LS_SERVERS, JSON.stringify(list));
 }
 
+/* 🔒 server URL DOM me kabhi nahi — option value sirf opaque id */
+const serverMap = new Map();
+
+function serverId(url) {
+  const u = normUrl(url);
+  if (!u) return "";
+  for (const [id, v] of serverMap) if (v === u) return id;
+  const id = "s" + (serverMap.size + 1);
+  serverMap.set(id, u);
+  return id;
+}
+
+function serverUrl(value) {
+  return serverMap.get(String(value || "")) || "";
+}
+
 function buildServerOptions(cfg) {
   const sel = $("#server-select");
   const saved = localStorage.getItem(LS_API) || "";
   sel.innerHTML = "";
+  serverMap.clear();
 
   const list = [];
   const push = (name, url) => {
@@ -175,21 +192,25 @@ function buildServerOptions(cfg) {
     if (!s.name) s.name = `Server ${i + 1}`;
   });
 
-  for (const s of list) addOption(sel, s.name, s.url);
+  for (const s of list) addOption(sel, s.name, serverId(s.url));
 
-  if (saved && !list.some((s) => s.url === saved)) {
-    addOption(sel, "Saved · " + hostOf(saved), saved);
+  if (saved && !list.some((s) => s.url === normUrl(saved))) {
+    addOption(sel, isAdmin() ? "Saved · " + hostOf(saved) : "Saved server", serverId(saved));
   }
 
-  if (!list.length && !saved) addOption(sel, "No server configured", "");
+  if (!list.length && !saved) addOption(sel, "No server available", "");
 
-  sel.value = saved || (list[0] ? list[0].url : "");
+  sel.value = saved ? serverId(saved) : list[0] ? serverId(list[0].url) : "";
   updateAdminUi();
 }
 
 function updateAdminUi() {
   const admin = isAdmin();
+  // 🔒 non-owner ko koi owner option/link nazar nahi aata
+  $("#custom-wrap").hidden = !admin;
+  $("#test-server").hidden = !admin;
   $("#copy-gist").hidden = !admin;
+
   // owner-mode me key box ki zaroorat nahi
   const keyBox = $("#owner-key");
   if (keyBox) {
@@ -382,24 +403,29 @@ async function pair(phone) {
   const start = normalizeInput(qApi || localStorage.getItem(LS_API) || (first ? first.url : ""));
 
   if (start) {
-    $("#custom-server").value = start;
-    $("#server-select").value = start;
+    const id = serverId(start);
+    if (![...$("#server-select").options].some((o) => o.value === id)) {
+      addOption($("#server-select"), isAdmin() ? "Saved · " + hostOf(start) : "Saved server", id);
+    }
+    $("#server-select").value = id;
+    if (isAdmin()) $("#custom-server").value = start;
     setApi(start, { quiet: true });
   } else {
     paint(null);
     refreshStatus();
-    setMsg("Add your server URL below to start.", "");
+    setMsg(isAdmin() ? "Add your server below to start." : "No server available right now.", "");
   }
 
   $("#server-select").addEventListener("change", (e) => {
-    if (!e.target.value) {
+    const url = serverUrl(e.target.value);
+    if (!url) {
       state.api = "";
       localStorage.removeItem(LS_API);
       paint(null);
-      setMsg("Enter your bot URL below.", "");
+      setMsg(isAdmin() ? "Enter your bot URL below." : "No server available right now.", "");
       return;
     }
-    setApi(e.target.value);
+    setApi(url);
   });
 
   async function saveCustom() {
@@ -440,7 +466,7 @@ async function pair(phone) {
     saveOwnerServers(list);
 
     buildServerOptions(state.cfg);
-    $("#server-select").value = u;
+    $("#server-select").value = serverId(u);
     $("#custom-name").value = "";
     $("#custom-server").value = "";
     toast("Server saved ✓");
